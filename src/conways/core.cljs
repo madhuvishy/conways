@@ -35,11 +35,12 @@
   (reify
     om/IDidMount 
     (did-mount [_]
-      (om/transact! app :cells (fn [_] (initial-grid width height)))
-      (prn (alive-neighbors 4 4 cells)))
+      (om/transact! app :cells (fn [_] (initial-grid width height))))
 
     om/IRender
     (render [_]
+      (when (not (empty? cells))
+        (prn (alive-neighbors 4 4 cells)))
       (dom/div #js {:ref "cells" :id "cells"}
                (apply dom/div nil
                       (map (fn [r] (row width cells r)) (range height)))))))
