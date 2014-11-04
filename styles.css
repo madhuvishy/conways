@@ -1,0 +1,20 @@
+.cell {
+  border: 1px solid black;
+  width: 20px;
+  height: 20px;
+  float:left;
+  text-align: center;
+  color: green;
+}
+
+.row {
+  clear: both;
+}
+
+.alive {
+  background-color: black;
+}
+
+.dead {
+
+}

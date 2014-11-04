@@ -11,3 +11,6 @@ pom.xml.asc
 .lein-failures
 .nrepl-port
 .repl/
+out/
+*.js
+*.swp
