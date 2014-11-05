@@ -4,11 +4,17 @@
 
 (enable-console-print!)
 
-(def app-state (atom {:dimensions [8 8] :cells []}))
+(def app-state (atom {:dimensions [30 30] :cells []}))
 
 (def offsets [[-1 -1] [0 -1] [1 -1]
               [-1  0]        [1  0]
               [-1  1] [0  1] [1  1]])
+
+(defn initial-grid 
+  ([dimensions] (initial-grid dimensions true))
+  ([[width height] random?]
+   (vec (for [r (range height)] 
+          (vec (for [c (range width)] (if random? (rand-int 2) 0)))))))
 
 (defn valid? [[w h] [x y]]
   (and (>= x 0) (< x w) (>= y 0) (< y h)))
@@ -18,13 +24,24 @@
               identity 
               (map (fn [[offsetx offsety]] 
                      (let [x (+ offsetx r) y (+ offsety c)]
-                       (when (valid? dimensions [x y]) (get-in cells [x y])))) offsets))))
-
-(defn initial-grid [[width height]]
-  (vec (for [r (range height)] 
-         (vec (for [c (range width)] (rand-int 2))))))
+                       (get-in cells [x y]))) offsets))))
 
 (defn alive? [cell] (= cell 1))
+
+(defn living? [r c {:keys [dimensions cells] :as state}]
+  (let [neighbors (alive-neighbors r c state)
+        alive (alive? (get-in cells [r c]))]
+    (cond (and alive (or (< neighbors 2) (> neighbors 3))) false
+          (and (not alive) (= neighbors 3)) true
+          :else alive)))
+
+(defn next-gen [{:keys [dimensions cells] :as state}]
+  (let [[width height] dimensions
+        next-cells (atom (initial-grid dimensions false))]
+    (doseq [r (range height)
+            c (range width)]
+      (swap! next-cells assoc-in [r c] (if (living? r c state) 1 0)))
+    @next-cells))
 
 (defn row [width cells r]
   (apply dom/div #js {:className "row"}
@@ -34,15 +51,14 @@
                (dom/div #js {:className (if (alive? cell) "alive cell" "dead cell")})))
            (range width))))
 
-(defn world [{:keys [dimensions cells] :as app} owner]
+(defn world [{:keys [dimensions cells] :as state} owner]
   (reify
     om/IWillMount 
     (will-mount [_]
-      (om/transact! app :cells (fn [_] (initial-grid dimensions))))
-
-    om/IDidUpdate
-    (did-update [_ _ _]
-      (prn (alive-neighbors 7 7 app)))
+      (om/update! cells (initial-grid dimensions))
+      (js/setInterval
+        (fn [_] (om/update! cells (next-gen @state)))
+        100))
 
     om/IRender
     (render [_]
